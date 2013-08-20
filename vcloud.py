@@ -355,13 +355,15 @@ class VApp(APIType):
 def random_string(n):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(n))
 
+
 if __name__ == '__main__':
 
     parser = OptionParser("""usage: %prog --help
        %prog list-catalogs
        %prog list-templates CATALOG
        %prog deploy CATALOG TEMPLATE
-       %prog status [VM-NAME]""")
+       %prog status [VM-NAME]
+       %prog delete VM-NAME""")
     default_organization = "Imaging"
     default_user = getpass.getuser()
     default_base_url = "https://vcd.broadinstitute.org/api"
