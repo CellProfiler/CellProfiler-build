@@ -1,7 +1,8 @@
+#!/usr/bin/env python
+
 import base64
 import getpass
 from optparse import OptionParser
-import xml.etree.ElementTree as ET
 import random
 import string
 import sys
