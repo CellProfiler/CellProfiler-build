@@ -131,7 +131,7 @@ class APIType(object):
         self.ensure_loaded()
         els = xpath.find(xq, self.doc)
         if els:
-            return el.getAttribute(attr)
+            return els[0].getAttribute(attr)
         else:
             return default
 
