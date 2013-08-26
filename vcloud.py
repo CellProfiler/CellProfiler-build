@@ -3,9 +3,12 @@
 import base64
 import getpass
 from optparse import OptionParser
+import os.path
+import progressbar
 import random
 import string
 import sys
+import time
 import xpath
 import requests
 from xml.dom import minidom
@@ -276,13 +279,14 @@ class VirtualDataCenter(APIType):
         source.setAttribute("href", template.url)
         return params.toxml()
 
-    def deploy(self, item, name):
+    def deploy(self, item, name=None):
         assert len(self.networks) == 1
         network_url = self.networks.values()[0]
         template = item.template()
         #print
         #print 'TEMPLATE'
         #print template.toxml()
+        name = name or item.name + '-' + random_string(6)
         body = self._param_body(network_url, template, name)
         #print
         #print 'PARAMS'
@@ -290,6 +294,32 @@ class VirtualDataCenter(APIType):
         doc = self.session.post(self.instantiate_url, body,
                                 body_type='application/vnd.vmware.vcloud.instantiateVAppTemplateParams+xml')
         return VApp(self.session, doc=doc)
+
+
+class Task(APIType):
+    content_type = 'application/vnd.vmware.vcloud.task+xml'
+
+    @property
+    def status(self):
+        return self._get_attribute('//Task', 'status')
+
+    @property
+    def operation(self):
+        return self._get_attribute('//Task', 'operation')
+
+    @property
+    def progress(self):
+        return int(self._get_text_children('//Task/Progress'))
+
+    def wait(self):
+        while True:
+            if self.status in ['success', 'error', 'canceled', 'aborted']:
+                return self.status
+            time.sleep(1)
+            self.reload()
+
+class OperationException(Exception):
+    pass
         
 
 class VApp(APIType):
@@ -340,22 +370,28 @@ class VApp(APIType):
         body = """<?xml version="1.0" encoding="UTF-8"?>
                   <UndeployVAppParams
                      xmlns="http://www.vmware.com/vcloud/v1.5">
-                     <UndeployPowerAction>powerOff</UndeployPowerAction>
+                     <UndeployPowerAction>default</UndeployPowerAction>
                   </UndeployVAppParams>"""
         doc = self.session.post(url, body, 
                                 'application/vnd.vmware.vcloud.undeployVAppParams+xml')
+        status = Task(self.session, doc=doc).wait()
+        if status != "success":
+            raise OperationException("Failed to undeploy. Status: %s" % status)
         self.reload()
 
     def delete(self):
         """Delete the vApp"""
         self.ensure_loaded()
         url = self._get_attribute("//VApp/Link[@rel='remove']", 'href')
+        assert url
         doc = self.session.delete(url)
+        status = Task(self.session, doc=doc).wait()
+        if status != "success":
+            raise OperationException("Failed to undeploy. Status: %s" % status)
 
 
 def random_string(n):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(n))
-
 
 if __name__ == '__main__':
 
@@ -377,6 +413,10 @@ if __name__ == '__main__':
     parser.add_option("-u", "--user", default=default_user,
                       help="vCloud username [default: %s]" % default_user)
     options, args = parser.parse_args()
+
+    def die(message):
+        print >>sys.stderr, "%s: %s" % (os.path.basename(sys.argv[0]), message)
+        sys.exit(1)
 
     def make_session():
         username = options.user
@@ -402,7 +442,7 @@ if __name__ == '__main__':
         catalog_name = args[1]
         catalogs = org.catalogs
         if catalog_name not in catalogs:
-            parser.error("Can't find catalog: %s" % catalog_name)
+            die("Can't find catalog: %s" % catalog_name)
         return catalogs[catalog_name], org
 
     def command_list_templates():
@@ -419,8 +459,7 @@ if __name__ == '__main__':
         catalog, org = _get_catalog(args[1])
         item = catalog[args[2]]
         vdc = org.virtual_data_center()
-        name = item.name + '-' + random_string(6)
-        vapp = vdc.deploy(item, name)
+        vapp = vdc.deploy(item)
         print vapp.name
 
     def command_status():
@@ -436,7 +475,7 @@ if __name__ == '__main__':
             vdc = org.virtual_data_center()
             d = vdc.vapps
             if vapp_name not in d:
-                parser.error("Can't find VApp: %s" % vapp_name)
+                die("Can't find VApp: %s" % vapp_name)
             vapps = [d[vapp_name]]
         else:
             help()
@@ -452,11 +491,15 @@ if __name__ == '__main__':
         vdc = org.virtual_data_center()
         d = vdc.vapps
         if vapp_name not in d:
-            parser.error("Can't find VApp: %s" % vapp_name)
+            die("Can't find VApp: %s" % vapp_name)
         vapp = d[vapp_name]
-        if vapp.deployed:
-            vapp.undeploy()
-        vapp.delete()
+        try:
+            if vapp.deployed:
+                vapp.undeploy()
+            vapp.delete()
+        except OperationException, e:
+            print e
+            sys.exit(1)
 
     def command_experiment():
         session = make_session()
