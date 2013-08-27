@@ -13,8 +13,7 @@ env.user = "cpbuild"
 def set_up_cpbuild_user():
     run("""test -d /home/cpbuild || adduser cpbuild""")
     run("""test -d /home/cpbuild/.ssh || sudo -u cpbuild mkdir -m 700 /home/cpbuild/.ssh""")
-    put("%s.pub" % env.key_filename, 
-        "/home/cpbuild/.ssh/authorized_keys", mode=0600)
+    put("id_rsa.pub", "/home/cpbuild/.ssh/authorized_keys", mode=0600)
     run("""chown cpbuild:cpbuild /home/cpbuild/.ssh/authorized_keys""")
 
 def build():
