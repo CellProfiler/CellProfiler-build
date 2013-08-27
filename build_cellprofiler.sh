@@ -1,19 +1,12 @@
 #!/bin/bash
 #
 # This script will be run as the cpbuild user inside the virtual build
-# machine.
+# machine. It is started from the Fabric script fabfile.py.
 
-set -ex
-
-
-function gitclone {
-    cd /usr/CellProfiler/src
-    git clone https://github.com/CellProfiler/CellProfiler.git
-}
-
-function makebindir {
-    mkdir /usr/CellProfiler/src
-}
+# Stop at first error.
+set -e
+# Print each command before executing it.
+set -x
 
 function makeall {
     export GITHOME=/usr/CellProfiler/src/CellProfiler
@@ -56,9 +49,20 @@ function clean {
     rm ./*.tar.bz2
 }
 
-echo This is inside deploy_cpbuild.sh
-makebindir
-gitclone
+echo This is inside "$0"
+
+# Install dependencies as RPM packages. These are the build dependencies;
+# not all of them are required to run the finished software.
+sudo yum -q -y install python-setuptools gcc gcc-c++ wget vim gtk2-devel git svn gcc-gfortran cmake mesa-libGL mesa-libGL-devel blas atlas lapack blas-devel atlas-devel lapack-devel xorg-x11-xauth* xorg-x11-xkb-utils* unzip dejavu-lgc-sans-fonts qt-devel openssl openssl-devel xclock bzip2 bzip2-devel bzip2-libs libXtst make
+
+# Create directories.
+sudo mkdir /usr/CellProfiler
+sudo chown cpbuild:cpbuild /usr/CellProfiler
+mkdir /usr/CellProfiler/src
+
+# Get the source code for CellProfiler.
+git clone https://github.com/CellProfiler/CellProfiler.git /usr/CellProfiler/src/CellProfiler
+
 downloadjava
 installjava
 makeall
