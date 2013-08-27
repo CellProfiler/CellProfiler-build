@@ -8,7 +8,6 @@
 
 from fabric.api import env, settings, run, put
 
-env.key_filename = "../id_rsa"
 env.user = "cpbuild"
 
 def set_up_cpbuild_user():
