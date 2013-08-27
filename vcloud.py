@@ -459,7 +459,7 @@ if __name__ == '__main__':
         catalog, org = _get_catalog(args[1])
         item = catalog[args[2]]
         vdc = org.virtual_data_center()
-        vapp = vdc.deploy(item)
+        vapp = vdc.deploy(item, name=os.environ.get('BUILD_TAG'))
         print vapp.name
 
     def command_status():
