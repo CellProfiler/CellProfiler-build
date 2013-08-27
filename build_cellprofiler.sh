@@ -59,6 +59,7 @@ sudo yum -q -y install python-setuptools gcc gcc-c++ wget vim gtk2-devel git svn
 sudo mkdir /usr/CellProfiler
 sudo chown cpbuild:cpbuild /usr/CellProfiler
 mkdir /usr/CellProfiler/src
+mkdir /usr/CellProfiler/src/CellProfiler
 
 # Get the source code for CellProfiler.
 git clone https://github.com/CellProfiler/CellProfiler.git /usr/CellProfiler/src/CellProfiler
