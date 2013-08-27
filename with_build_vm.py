@@ -49,6 +49,8 @@ session = login_to_vcloud()
 vapp = deploy_vm(session, template_name)
 ip_address = get_ip_address(vapp)
 
-subprocess.call(command + [ip_address])
+return_code = subprocess.call(command + [ip_address])
 
 delete_vm(vapp)
+
+sys.exit(return_code)
