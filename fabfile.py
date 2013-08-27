@@ -19,7 +19,7 @@ def set_up_user(username):
     run("""test -d {home}/.ssh || sudo -u {username} mkdir -m 700 {home}/.ssh""".format(**d))
     put("id_rsa.pub", "{home}/.ssh/authorized_keys".format(**d), mode=0600)
     run("""chown {username}:{username} {home}/.ssh/authorized_keys""".format(**d))
-    run("""echo {username}	ALL=(ALL) ALL >> /etc/sudoers""".format(**d))
+    run("""echo '{username}	ALL=(ALL) ALL' >> /etc/sudoers""".format(**d))
 
 def build():
     set_up_user("cpbuild")
